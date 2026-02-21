@@ -1,0 +1,68 @@
+{
+    "name": "SYSTEM — Solo Fitness",
+    "short_name": "SYSTEM",
+    "description": "Solo Leveling inspired fitness tracker. Complete daily quests, level up your real life.",
+    "start_url": "./index.html",
+    "scope": "./",
+    "display": "standalone",
+    "display_override": [
+        "window-controls-overlay",
+        "standalone",
+        "minimal-ui"
+    ],
+    "background_color": "#0a0a0f",
+    "theme_color": "#0a0a0f",
+    "orientation": "portrait-primary",
+    "lang": "en",
+    "id": "solo-fitness-system",
+    "launch_handler": {
+        "client_mode": "navigate-existing"
+    },
+    "icons": [
+        {
+            "src": "icon (1).jpg",
+            "sizes": "192x192",
+            "type": "image/jpeg",
+            "purpose": "any"
+        },
+        {
+            "src": "icon.jpg",
+            "sizes": "512x512",
+            "type": "image/jpeg",
+            "purpose": "any maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Daily Quests",
+            "short_name": "Quests",
+            "description": "Open your daily quests",
+            "url": "./index.html#quests",
+            "icons": [
+                {
+                    "src": "icon (1).jpg",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "Progress",
+            "short_name": "Progress",
+            "description": "View your 30-day progress",
+            "url": "./index.html#progress",
+            "icons": [
+                {
+                    "src": "icon (1).jpg",
+                    "sizes": "192x192"
+                }
+            ]
+        }
+    ],
+    "categories": [
+        "health",
+        "fitness",
+        "lifestyle",
+        "games"
+    ],
+    "prefer_related_applications": false
+}
