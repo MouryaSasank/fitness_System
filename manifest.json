@@ -20,15 +20,15 @@
     },
     "icons": [
         {
-            "src": "icon (1).jpg",
+            "src": "icon-192.png",
             "sizes": "192x192",
-            "type": "image/jpeg",
-            "purpose": "any"
+            "type": "image/png",
+            "purpose": "any maskable"
         },
         {
-            "src": "icon.jpg",
+            "src": "icon-512.png",
             "sizes": "512x512",
-            "type": "image/jpeg",
+            "type": "image/png",
             "purpose": "any maskable"
         }
     ],
@@ -40,7 +40,7 @@
             "url": "./index.html#quests",
             "icons": [
                 {
-                    "src": "icon (1).jpg",
+                    "src": "icon-192.png",
                     "sizes": "192x192"
                 }
             ]
@@ -52,7 +52,7 @@
             "url": "./index.html#progress",
             "icons": [
                 {
-                    "src": "icon (1).jpg",
+                    "src": "icon-192.png",
                     "sizes": "192x192"
                 }
             ]

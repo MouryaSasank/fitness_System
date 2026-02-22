@@ -24,6 +24,43 @@ const CONFIG = {
     streakBonusXP: 15
 };
 
+// ── Items & Drops ─────────────────────────────
+const ITEMS = {
+    venom_fang: {
+        id: 'venom_fang', name: "Kasaka's Venom Fang", icon: '🗡️',
+        description: '+15 STR temporarily (Instant XP Boost)',
+        rarity: 'epic',
+        type: 'xp',
+        value: 50,
+        color: '#8b5cf6'
+    },
+    elixir_life: {
+        id: 'elixir_life', name: "Elixir of Life", icon: '🧪',
+        description: 'Fully restores Fatigue instantly',
+        rarity: 'rare',
+        type: 'fatigue',
+        value: 100,
+        color: '#00ff88'
+    },
+    shadow_crystal: {
+        id: 'shadow_crystal', name: "Shadow Crystal", icon: '🔮',
+        description: 'Grants a burst of pure EXP',
+        rarity: 'legendary',
+        type: 'xp',
+        value: 150,
+        color: '#f0c040'
+    },
+    muscle_stimulant: {
+        id: 'muscle_stimulant', name: "Hunter Stimulant", icon: '💊',
+        description: '+25 XP, Minor Fatigue recovery',
+        rarity: 'common',
+        type: 'mixed',
+        xpValue: 25,
+        fatigueValue: 15,
+        color: '#cccccc'
+    }
+};
+
 // ── Quest pool ────────────────────────────────
 const QUEST_TYPES = {
     pushups: {

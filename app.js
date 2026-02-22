@@ -15,7 +15,10 @@ let player = {
     streak: 0,
     bestStreak: 0,
     history: [],          // array of { date, questsDone }  — one entry per day cleared
-    earnedAchievements: [] // array of achievement ids
+    earnedAchievements: [], // array of achievement ids
+    // ── v3 upgrades ──
+    inventory: [],        // array of item IDs e.g. ['venom_fang']
+    customQuests: []      // user-generated quests { id, name, diff, type ... }
 };
 
 // ── Bootstrap ─────────────────────────────────
@@ -50,7 +53,9 @@ function loadPlayerData() {
         player = {
             ...player,
             ...data,
-            stats: { ...player.stats, ...(data.stats || {}) }
+            stats: { ...player.stats, ...(data.stats || {}) },
+            inventory: data.inventory || [],
+            customQuests: data.customQuests || []
         };
     } else {
         savePlayerData();
@@ -59,6 +64,47 @@ function loadPlayerData() {
 
 function savePlayerData() {
     localStorage.setItem('soloFitnessPlayer', JSON.stringify(player));
+}
+
+// ── Export / Import Data ──────────────────────
+function exportSaveData() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(player));
+    const dlAnchorElem = document.createElement('a');
+    dlAnchorElem.setAttribute("href", dataStr);
+    dlAnchorElem.setAttribute("download", `system_save_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(dlAnchorElem);
+    dlAnchorElem.click();
+    dlAnchorElem.remove();
+    showSystemMessage("DATA EXPORTED SUCCESSFULLY", 2000);
+}
+
+function importSaveData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            if (importedData && importedData.stats && importedData.level) {
+                player = {
+                    ...player,
+                    ...importedData,
+                    stats: { ...player.stats, ...(importedData.stats || {}) },
+                    inventory: importedData.inventory || [],
+                    customQuests: importedData.customQuests || []
+                };
+                savePlayerData();
+                showSystemMessage("DATA IMPORTED!\nReloading System...", 2000);
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                throw new Error("Invalid Save File");
+            }
+        } catch (err) {
+            showSystemMessage("ERROR:\nInvalid Backup File!", 3000);
+        }
+    };
+    reader.readAsText(file);
 }
 
 // ── Daily reset ───────────────────────────────
@@ -142,8 +188,9 @@ function completeQuest(questId) {
         player.xp += totalXP;
         player.fatigue = Math.min(CONFIG.maxFatigue, player.fatigue + quest.fatigueRegen);
 
-        // log to history when all 4 done
-        if (player.dailyQuests.every(q => q.completed)) {
+        // log to history when all 4 core quests done
+        const coreQuests = player.dailyQuests.filter(q => !q.isCustom);
+        if (coreQuests.length > 0 && coreQuests.every(q => q.completed)) {
             const today = new Date().toDateString();
             if (!(player.history || []).some(h => h.date === today)) {
                 player.history = player.history || [];
@@ -156,14 +203,171 @@ function completeQuest(questId) {
             }
         }
 
+        // ── Loot Drop Chance (20% chance on completion) ──
+        if (Math.random() < 0.20) {
+            triggerLootDrop();
+        }
+
         checkLevelUp();
         checkAchievements();
         savePlayerData();
         updateUI();
         renderQuests();
         renderAchievements();
+        renderInventory();
         renderChart();
     }, 300);
+}
+
+// ── Loot & Inventory System ───────────────────
+function triggerLootDrop() {
+    const itemKeys = Object.keys(ITEMS);
+    // Weighted random (mostly common, rarely legendary)
+    let roll = Math.random();
+    let selectedItemKey;
+
+    if (roll > 0.95) selectedItemKey = 'shadow_crystal'; // 5% chance
+    else if (roll > 0.80) selectedItemKey = 'venom_fang'; // 15% chance
+    else if (roll > 0.50) selectedItemKey = 'elixir_life'; // 30% chance
+    else selectedItemKey = 'muscle_stimulant'; // 50% chance
+
+    const item = ITEMS[selectedItemKey];
+    player.inventory.push(item.id);
+    savePlayerData();
+
+    // Show Drop Popup
+    showDropPopup(item);
+}
+
+function showDropPopup(item) {
+    const el = document.getElementById('dropPopup');
+    if (!el) return;
+    el.querySelector('.drop-pop-icon').textContent = item.icon;
+    el.querySelector('.drop-pop-name').textContent = item.name;
+    el.querySelector('.drop-pop-rarity').textContent = 'ITEM DROPPED: ' + item.rarity.toUpperCase();
+    el.querySelector('.drop-pop-rarity').style.color = item.color;
+    el.style.border = `1px solid ${item.color}`;
+    el.style.boxShadow = `0 0 20px ${item.color}55`;
+
+    el.classList.remove('hidden');
+    if (SoundManager) SoundManager.questComplete(); // Play sound for loot
+    setTimeout(() => el.classList.add('hidden'), 3500);
+}
+
+function consumeItem(index) {
+    if (index < 0 || index >= player.inventory.length) return;
+
+    const itemId = player.inventory[index];
+    const item = ITEMS[itemId];
+    if (!item) return;
+
+    // Apply effects
+    if (item.type === 'xp') {
+        player.xp += item.value;
+        showXPGain(item.value);
+    } else if (item.type === 'fatigue') {
+        player.fatigue = Math.max(0, player.fatigue - item.value);
+    } else if (item.type === 'mixed') {
+        player.xp += item.xpValue;
+        player.fatigue = Math.max(0, player.fatigue - item.fatigueValue);
+        showXPGain(item.xpValue);
+    }
+
+    // Remove item and save
+    player.inventory.splice(index, 1);
+
+    createParticles(window.innerWidth / 2, window.innerHeight / 2, 30, item.color);
+
+    savePlayerData();
+    checkLevelUp();
+    updateUI();
+    renderInventory();
+}
+
+function renderInventory() {
+    const container = document.getElementById('inventoryList');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (player.inventory.length === 0) {
+        container.innerHTML = `<p class="empty-state">No items in inventory. Complete quests to find loot.</p>`;
+        return;
+    }
+
+    player.inventory.forEach((itemId, index) => {
+        const item = ITEMS[itemId];
+        if (!item) return;
+
+        const card = document.createElement('div');
+        card.className = 'quest-card'; // re-use styles
+        card.style.borderColor = item.color + '55';
+
+        card.innerHTML = `
+            <div class="quest-top">
+                <span class="quest-icon">${item.icon}</span>
+                <span class="quest-name" style="color:${item.color}">${item.name}</span>
+                <span class="difficulty-badge" style="background:${item.color}22; color:${item.color}; border:1px solid ${item.color}">
+                    ${item.rarity.toUpperCase()}
+                </span>
+            </div>
+            <div class="quest-target">
+                <span class="qt-label">EFFECT</span>
+                <span class="qt-val" style="font-size:11px; white-space:normal">${item.description}</span>
+            </div>
+            <button class="quest-btn" style="background:linear-gradient(135deg, ${item.color}, #222); color:#fff"
+                    onclick="consumeItem(${index})">
+                USE ITEM
+            </button>
+        `;
+        container.appendChild(card);
+    });
+}
+
+// ── Custom Quests ────────────────────────────
+function openCustomQuestModal() {
+    document.getElementById('customQuestModal').classList.remove('hidden');
+}
+
+function closeCustomQuestModal() {
+    document.getElementById('customQuestModal').classList.add('hidden');
+    document.getElementById('cqName').value = '';
+    document.getElementById('cqTarget').value = '';
+}
+
+function addCustomQuest() {
+    const name = document.getElementById('cqName').value.trim();
+    const type = document.getElementById('cqType').value;
+    const target = document.getElementById('cqTarget').value.trim();
+    const diffSelected = document.getElementById('cqDifficulty').value;
+
+    if (!name || !target) {
+        showSystemMessage("ERROR: Name and Target are required.");
+        return;
+    }
+
+    const tier = DIFFICULTY_TIERS[diffSelected];
+    const baseXP = diffSelected === 'extreme' ? 60 : diffSelected === 'hard' ? 40 : 20;
+
+    const newQuest = {
+        id: 'custom_' + Date.now(),
+        isCustom: true,
+        type: type,
+        name: name,
+        icon: '📝',
+        difficulty: target, // Can be string like "30 mins" or "1 chapter"
+        difficultyTier: diffSelected,
+        xpReward: baseXP,
+        fatigueRegen: 10,
+        completed: false
+    };
+
+    player.dailyQuests.push(newQuest);
+    savePlayerData();
+    closeCustomQuestModal();
+    renderQuests();
+
+    showSystemMessage("CUSTOM QUEST ADDED", 1500);
 }
 
 // ── XP notification ───────────────────────────
@@ -382,7 +586,7 @@ function renderQuests() {
         card.innerHTML = `
             <div class="quest-top">
                 <span class="quest-icon">${quest.icon || '🏋️'}</span>
-                <span class="quest-name">${quest.name}</span>
+                <span class="quest-name">${quest.name} ${quest.isCustom ? '<span style="color:#aaa;font-size:10px">(Custom)</span>' : ''}</span>
                 <span class="difficulty-badge" style="
                     background: ${tier.color}22;
                     border: 1px solid ${tier.color};
@@ -397,7 +601,7 @@ function renderQuests() {
             </div>
             <div class="quest-target">
                 <span class="qt-label">TARGET</span>
-                <span class="qt-val">${quest.difficulty} ${unit}</span>
+                <span class="qt-val">${quest.difficulty} ${quest.isCustom ? '' : unit}</span>
             </div>
             <div class="quest-reward" style="text-align: center; margin: 8px 0; font-size: 14px; font-weight: 600;">
                 <span class="quest-xp" style="color: ${tier.color};">+${quest.xpReward}${streakBonus ? ` <span style="color:#ffa500;font-size:11px">(+${streakBonus} streak)</span>` : ''} XP</span>
@@ -460,10 +664,15 @@ function animateStat(elId, val) {
 function switchTab(tabId) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
-    document.getElementById('tab-' + tabId).classList.add('active');
+
+    const targetBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+    if (targetBtn) targetBtn.classList.add('active');
+
+    const targetPanel = document.getElementById('tab-' + tabId);
+    if (targetPanel) targetPanel.classList.add('active');
 
     if (tabId === 'progress') renderChart();
+    if (tabId === 'inventory') renderInventory();
 }
 
 // ── Install banner (iOS) ──────────────────────
@@ -743,6 +952,7 @@ window.showLevelUpNotification = function (oldStats, rankedUp) {
 const originalInit = init;
 window.init = function () {
     originalInit();
+    renderInventory(); // Ensure inventory renders on load
     checkDailyLogin();
     updateSoundToggleUI();
     showDailyQuote();

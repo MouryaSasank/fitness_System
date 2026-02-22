@@ -155,6 +155,8 @@
         <div class="tab-bar">
             <button class="tab-btn active" data-tab="quests" onclick="switchTab('quests')" id="tabBtn-quests">🗡️
                 Quests</button>
+            <button class="tab-btn" data-tab="inventory" onclick="switchTab('inventory')" id="tabBtn-inventory">💼
+                Inventory</button>
             <button class="tab-btn" data-tab="achievements" onclick="switchTab('achievements')"
                 id="tabBtn-achievements">🏆 Badges</button>
             <button class="tab-btn" data-tab="progress" onclick="switchTab('progress')" id="tabBtn-progress">📊
@@ -165,8 +167,19 @@
         <!-- ── Tab: Quests ── -->
         <div id="tab-quests" class="tab-panel active">
             <div class="panel-card">
-                <div class="panel-header">DAILY QUESTS</div>
+                <div class="panel-header">
+                    <span>DAILY QUESTS</span>
+                    <button onclick="openCustomQuestModal()" class="add-quest-btn" title="Add Custom Quest">+</button>
+                </div>
                 <div id="questsList"></div>
+            </div>
+        </div>
+
+        <!-- ── Tab: Inventory ── -->
+        <div id="tab-inventory" class="tab-panel">
+            <div class="panel-card">
+                <div class="panel-header">INVENTORY</div>
+                <div id="inventoryList" class="inventory-list"></div>
             </div>
         </div>
 
@@ -214,6 +227,21 @@
         </div>
     </div>
 
+    <!-- ── Loot Drop Pop ── -->
+    <div id="dropPopup" class="ach-popup hidden">
+        <div class="ach-pop-row">
+            <span class="drop-pop-icon" style="font-size:36px;flex-shrink:0;">🎁</span>
+            <div class="ach-pop-text">
+                <div class="drop-pop-rarity"
+                    style="font-family:var(--font-head);font-size:9px;letter-spacing:2px;margin-bottom:2px;">ITEM
+                    DROPPED</div>
+                <div class="drop-pop-name"
+                    style="font-family:var(--font-head);font-size:14px;font-weight:700;margin-bottom:2px;">Name</div>
+                <div class="drop-pop-desc" style="font-size: 11px; color: var(--text-dim);">Added to Inventory</div>
+            </div>
+        </div>
+    </div>
+
     <!-- ── XP Float ── -->
     <div id="xpGainNotif" class="xp-gain-notif hidden">+0 XP</div>
 
@@ -234,15 +262,84 @@
                 <span>Sound Effects</span>
                 <button id="soundToggle" class="toggle-btn" onclick="toggleSound()">OFF</button>
             </div>
+
+            <div class="settings-divider"></div>
+
+            <div class="settings-option">
+                <span>Data Backup</span>
+                <div style="display:flex; gap:8px;">
+                    <button class="toggle-btn" onclick="exportSaveData()">EXPORT</button>
+                    <label class="toggle-btn" style="cursor:pointer;">
+                        IMPORT
+                        <input type="file" accept=".json" style="display:none;" onchange="importSaveData(event)">
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-divider"></div>
+
             <div class="settings-option">
                 <span>App Version</span>
-                <span style="color: #00d4ff; font-size: 12px;">v3.0 Premium</span>
+                <span style="color: #00d4ff; font-size: 12px;">v3.1 Premium</span>
             </div>
             <div class="settings-divider"></div>
             <div class="settings-install-section" id="settingsInstallSection" style="display:none;">
                 <button class="overlay-btn install-full-btn" id="settingsInstallBtn">⚡ INSTALL APP</button>
             </div>
             <button class="overlay-btn" onclick="closeSettings()" style="margin-top: 12px;">CLOSE</button>
+        </div>
+    </div>
+
+    <!-- ── Custom Quest Modal ── -->
+    <div id="customQuestModal" class="overlay hidden">
+        <div class="overlay-content settings-box">
+            <div class="settings-title">📝 NEW QUEST</div>
+
+            <div style="margin-bottom: 15px;">
+                <label
+                    style="font-family:var(--font-head); font-size:10px; color:var(--text-dim); display:block; margin-bottom:5px;">QUEST
+                    NAME</label>
+                <input type="text" id="cqName" placeholder="e.g. Meditate, Study, Code"
+                    style="width:100%; background:rgba(0,0,0,0.5); border:1px solid rgba(0,212,255,0.3); color:#fff; padding:10px; border-radius:6px; font-family:var(--font-body); font-size:14px; outline:none;">
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label
+                    style="font-family:var(--font-head); font-size:10px; color:var(--text-dim); display:block; margin-bottom:5px;">TARGET
+                    / DURATION</label>
+                <input type="text" id="cqTarget" placeholder="e.g. 15 mins, 2 chapters"
+                    style="width:100%; background:rgba(0,0,0,0.5); border:1px solid rgba(0,212,255,0.3); color:#fff; padding:10px; border-radius:6px; font-family:var(--font-body); font-size:14px; outline:none;">
+            </div>
+
+            <div style="display:flex; gap:10px; margin-bottom: 20px;">
+                <div style="flex:1;">
+                    <label
+                        style="font-family:var(--font-head); font-size:10px; color:var(--text-dim); display:block; margin-bottom:5px;">DIFFICULTY</label>
+                    <select id="cqDifficulty"
+                        style="width:100%; background:rgba(0,0,0,0.5); border:1px solid rgba(0,212,255,0.3); color:#fff; padding:10px; border-radius:6px; font-family:var(--font-head); font-size:12px; outline:none;">
+                        <option value="normal">NORMAL</option>
+                        <option value="hard">HARD</option>
+                        <option value="extreme">EXTREME</option>
+                    </select>
+                </div>
+                <div style="flex:1;">
+                    <label
+                        style="font-family:var(--font-head); font-size:10px; color:var(--text-dim); display:block; margin-bottom:5px;">SKILL
+                        TYPE</label>
+                    <select id="cqType"
+                        style="width:100%; background:rgba(0,0,0,0.5); border:1px solid rgba(0,212,255,0.3); color:#fff; padding:10px; border-radius:6px; font-family:var(--font-head); font-size:12px; outline:none;">
+                        <option value="mental">INTELLECT</option>
+                        <option value="habit">HABIT</option>
+                        <option value="fitness">FITNESS</option>
+                    </select>
+                </div>
+            </div>
+
+            <button class="overlay-btn" onclick="addCustomQuest()"
+                style="background:linear-gradient(135deg, #00ff88, #00aa55); color:#000; margin-bottom:8px;">ADD
+                QUEST</button>
+            <button class="overlay-btn" onclick="closeCustomQuestModal()"
+                style="background:rgba(255,255,255,0.1); color:#fff;">CANCEL</button>
         </div>
     </div>
 
