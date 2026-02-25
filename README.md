@@ -6,7 +6,6 @@ A Solo Leveling-inspired fitness tracker PWA that turns your daily workouts and 
 
 ![Version](https://img.shields.io/badge/version-v3.1%20Premium-00d4ff?style=for-the-badge&logoColor=white)
 ![PWA](https://img.shields.io/badge/PWA-Ready-00ff88?style=for-the-badge&logoColor=black)
-![License](https://img.shields.io/badge/license-MIT-blueviolet?style=for-the-badge)
 
 ---
 
@@ -132,12 +131,6 @@ Feel free to fork the project and make it your own.
 2. Create a feature branch: `git checkout -b feature/my-feature`
 3. Commit your changes: `git commit -m "feat: add my feature"`
 4. Push and open a Pull Request
-
----
-
-## License
-
-This project is open source under the [MIT License](LICENSE).
 
 ---
 
